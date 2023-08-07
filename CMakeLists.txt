@@ -17,9 +17,14 @@ include_directories(lib)
 add_subdirectory(lib/AsmJit)
 
 
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__PCG_RANDOM__")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__PCG_RANDOM__")
 #
 # Code compilation
 #
+
+add_library(pcg src/pcg_basic.h src/pcg_basic.c)
 
 add_library(experiment src/experiment.h src/experiment.cpp)
 
@@ -30,7 +35,7 @@ add_library(lock src/lock.h src/lock.cpp)
 add_library(output src/output.h src/output.cpp)
 
 add_library(run src/run.h src/run.cpp)
-target_link_libraries(run lock thread)
+target_link_libraries(run lock thread pcg)
 
 add_library(spinbarrier src/spinbarrier.h src/spinbarrier.cpp)
 

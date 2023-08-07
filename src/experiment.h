@@ -22,6 +22,7 @@
 #include "chain.h"
 #include "types.h"
 
+#include "pcg_basic.h"
 
 //
 // Class definition
@@ -81,7 +82,12 @@ public:
     int32 numa_max_domain;	// highest numa domain id
     int32 num_numa_domains;	// number of numa domains
 
+#ifndef __PCG_RANDOM__
+    #warning "pcg not enabled"
     char** random_state;	// random state for each thread
+#else
+    pcg32_random_t  *pcg_state;
+#endif
 
     bool strict;			// strictly adhere to user input, or fail
 

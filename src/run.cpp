@@ -227,6 +227,9 @@ static const int prime_table[] = { 5, 11, 13, 17, 19, 23, 37, 41, 43, 47, 53,
 		157, 163, };
 static const int prime_table_size = sizeof prime_table / sizeof prime_table[0];
 
+
+#define PCG_RANDOM()   (pcg32_random_r(&(this->exp->pcg_state[this->thread_id()])))
+
 Chain*
 Run::random_mem_init(Chain *mem) {
 	// initialize pointers --
@@ -241,20 +244,30 @@ Run::random_mem_init(Chain *mem) {
 
 	// we must set a lock because random()
 	// is not thread safe
+#ifndef __PCG_RANDOM__
 	Run::global_mutex.lock();
 	setstate(this->exp->random_state[this->thread_id()]);
 	int page_factor = prime_table[random() % prime_table_size];
 	int page_offset = random() % this->exp->pages_per_chain;
 	Run::global_mutex.unlock();
-
+#else
+	int page_factor = prime_table[PCG_RANDOM() % prime_table_size];
+	int page_offset = PCG_RANDOM() % this->exp->pages_per_chain;
+#endif
 	// loop through the pages
 	for (int i = 0; i < this->exp->pages_per_chain; i++) {
 		int page = (page_factor * i + page_offset) % this->exp->pages_per_chain;
+
+#ifndef __PCG_RANDOM__
 		Run::global_mutex.lock();
 		setstate(this->exp->random_state[this->thread_id()]);
 		int line_factor = prime_table[random() % prime_table_size];
 		int line_offset = random() % this->exp->lines_per_page;
 		Run::global_mutex.unlock();
+#else
+		int line_factor = prime_table[PCG_RANDOM() % prime_table_size];
+		int line_offset = PCG_RANDOM() % this->exp->lines_per_page;
+#endif
 
 		// loop through the lines within a page
 		for (int j = 0; j < this->exp->lines_per_page; j++) {

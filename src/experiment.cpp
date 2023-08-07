@@ -477,15 +477,24 @@ int Experiment::parse_args(int argc, char* argv[]) {
 	case ADD:
 		this->thread_domain = new int32[this->num_threads];
 		this->chain_domain = new int32*[this->num_threads];
+#ifndef __PCG_RANDOM__
 		this->random_state = new char*[this->num_threads];
+#else
+		this->pcg_state = new pcg32_random_t[this->num_threads];
+#endif
 
 		for (int i = 0; i < this->num_threads; i++) {
 			this->chain_domain[i] = new int32[this->chains_per_thread];
-
+#ifndef __PCG_RANDOM__
 			const int state_size = 256;
 			this->random_state[i] = new char[state_size];
 			initstate((unsigned int) i, (char *) this->random_state[i],
 					(size_t) state_size);
+#else
+			pcg32_random_t  thread_pcg_state;
+			pcg32_srandom_r(&thread_pcg_state, 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL + i);
+			this->pcg_state[i] = thread_pcg_state;
+#endif
 		}
 		break;
 	}
@@ -677,16 +686,25 @@ void Experiment::alloc_map() {
 
 	this->thread_domain = new int32[this->num_threads];
 	this->chain_domain = new int32*[this->num_threads];
+
+#ifndef __PCG_RANDOM__
 	this->random_state = new char*[this->num_threads];
+#else
+	this->pcg_state = new pcg32_random_t[this->num_threads];
+#endif
 
 	for (int i = 0; i < this->num_threads; i++) {
 		this->thread_domain[i] = thread_domain[i] % this->num_numa_domains;
-
+#ifndef __PCG_RANDOM__
 		const int state_size = 256;
 		this->random_state[i] = new char[state_size];
 		initstate((unsigned int) i, (char *) this->random_state[i],
 				(size_t) state_size);
-
+#else
+		pcg32_random_t  thread_pcg_state;
+		pcg32_srandom_r(&thread_pcg_state, 0x853c49e6748fea9bULL, 0xda3e39cb94b95bdbULL + i);
+		this->pcg_state[i] = thread_pcg_state;
+#endif
 		this->chain_domain[i] = new int32[this->chains_per_thread];
 		for (int j = 0; j < this->chains_per_thread; j++) {
 			this->chain_domain[i][j] = chain_domain[i][j]
